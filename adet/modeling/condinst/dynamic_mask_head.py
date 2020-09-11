@@ -173,7 +173,7 @@ class DynamicMaskHead(nn.Module):
         mask_logits_edge = aligned_bilinear(mask_logits_edge, int(mask_feat_stride / self.mask_out_stride))
         mask_logits_final = aligned_bilinear(mask_logits_final, int(mask_feat_stride / self.mask_out_stride))
 
-        return mask_logits_body.sigmoid(),mask_logits_edge,mask_logits_final
+        return mask_logits_body.sigmoid(),mask_logits_edge.sigmoid(),mask_logits_final.sigmoid()
 
     def generate_body_and_edge(self, mask):
         # import time
@@ -270,17 +270,16 @@ class DynamicMaskHead(nn.Module):
                         str(random.randint(0, 10000))), show)
             ################################################################################################################
             if len(pred_instances) == 0:
-                loss_mask = mask_feats['mask_feats_body'].sum() * 0 + pred_instances.mask_head_params.sum() * 0
+                loss_mask = mask_feats['mask_feats_edge'].sum() * 0+mask_feats['mask_feats_body'].sum() * 0 + pred_instances.mask_head_params.sum() * 0
             else:
                 mask_scores_body,mask_scores_edge,mask_scores_final = self.mask_heads_forward_with_coords(
                     mask_feats, mask_feat_stride, pred_instances
                 )
-                #######
                 mask_losses_body = dice_coefficient(mask_scores_body, gt_bitmasks_body)
                 mask_losses_edge = dice_coefficient(mask_scores_edge, gt_bitmasks_edge)
                 mask_losses_final = dice_coefficient(mask_scores_final, gt_bitmasks)
                 loss_mask = mask_losses_body.mean()+mask_losses_edge.mean()+mask_losses_final.mean()
-
+                
             return loss_mask.float()
         else:
             if len(pred_instances) > 0:
