@@ -44,7 +44,7 @@ class CondInst(nn.Module):
         in_channels = self.proposal_generator.in_channels_to_top_module
 
         self.controller = nn.Conv2d(
-            in_channels, self.mask_head.num_gen_params,
+            in_channels, self.mask_head.num_gen_params*2+81,
             kernel_size=3, stride=1, padding=1
         )
         torch.nn.init.normal_(self.controller.weight, std=0.01)
@@ -74,7 +74,7 @@ class CondInst(nn.Module):
         )
 
         if self.training:
-            loss_mask = self._forward_mask_heads_train(proposals, mask_feats, gt_instances)
+            loss_mask = self._forward_mask_heads_train(proposals, mask_feats, gt_instances,images.tensor)
 
             losses = {}
             losses.update(sem_losses)
@@ -102,12 +102,12 @@ class CondInst(nn.Module):
 
             return processed_results
 
-    def _forward_mask_heads_train(self, proposals, mask_feats, gt_instances):
+    def _forward_mask_heads_train(self, proposals, mask_feats, gt_instances,images):
         # prepare the inputs for mask heads
         pred_instances = proposals["instances"]
 
         if 0 <= self.max_proposals < len(pred_instances):
-            inds = torch.randperm(len(pred_instances), device=mask_feats.device).long()
+            inds = torch.randperm(len(pred_instances), device=mask_feats['mask_feats_body'].device).long()
             logger.info("clipping proposals from {} to {}".format(
                 len(pred_instances), self.max_proposals
             ))
@@ -117,7 +117,7 @@ class CondInst(nn.Module):
 
         loss_mask = self.mask_head(
             mask_feats, self.mask_branch.out_stride,
-            pred_instances, gt_instances
+            pred_instances, gt_instances,images
         )
 
         return loss_mask
@@ -136,12 +136,14 @@ class CondInst(nn.Module):
         return pred_instances_w_masks
 
     def add_bitmasks(self, instances, im_h, im_w):
-        for per_im_gt_inst in instances:
+        for i in range(len(instances)):
+            per_im_gt_inst = instances[i]
             if not per_im_gt_inst.has("gt_masks"):
                 continue
             polygons = per_im_gt_inst.get("gt_masks").polygons
             per_im_bitmasks = []
             per_im_bitmasks_full = []
+            im_id = []
             for per_polygons in polygons:
                 bitmask = polygons_to_bitmask(per_polygons, im_h, im_w)
                 bitmask = torch.from_numpy(bitmask).to(self.device).float()
@@ -154,9 +156,11 @@ class CondInst(nn.Module):
 
                 per_im_bitmasks.append(bitmask)
                 per_im_bitmasks_full.append(bitmask_full)
+                im_id.append(i)
 
             per_im_gt_inst.gt_bitmasks = torch.stack(per_im_bitmasks, dim=0)
             per_im_gt_inst.gt_bitmasks_full = torch.stack(per_im_bitmasks_full, dim=0)
+            per_im_gt_inst.im_id = im_id
 
     def postprocess(self, results, output_height, output_width, padded_im_h, padded_im_w, mask_threshold=0.5):
         """

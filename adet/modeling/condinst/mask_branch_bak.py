@@ -3,7 +3,6 @@ import math
 
 import torch
 from torch import nn
-import torch.nn.functional as F
 
 from fvcore.nn import sigmoid_focal_loss_jit
 from detectron2.layers import ShapeSpec
@@ -68,9 +67,6 @@ class MaskBranch(nn.Module):
             bias_value = -math.log((1 - prior_prob) / prior_prob)
             torch.nn.init.constant_(self.logits.bias, bias_value)
 
-        self.refine_channel = nn.Conv2d(128,max(self.num_outputs,1),kernel_size=1,stride=1)
-        self.squeeze_body_edge = SqueezeBodyEdge(self.num_outputs,Norm2d)
-
     def forward(self, features, gt_instances=None):
         for i, f in enumerate(self.in_features):
             if i == 0:
@@ -86,20 +82,11 @@ class MaskBranch(nn.Module):
                 assert factor_h == factor_w
                 x_p = aligned_bilinear(x_p, factor_h)
                 x = x + x_p
-
-        # mask_feats.shape:torch.Size([16, self.num_outputs, 100, 144])
-        # mask_feats = self.tower(x)
-
-        # generate body and edge feturemap
-        # body.shape:torch.Size([16, 8, 100, 168])
-        # edge.shape:torch.Size([16, 8, 100, 168])
-        x = self.refine_channel(x)
-        mask_feats_body,mask_feats_edge = self.squeeze_body_edge(x)
+        #torch.Size([1, 8, 64, 64])
+        mask_feats = self.tower(x)
 
         if self.num_outputs == 0:
-            # mask_feats = mask_feats[:, :self.num_outputs]
-            mask_feats_body = mask_feats_body[:, :self.num_outputs]
-            mask_feats_edge = mask_feats_edge[:, :self.num_outputs]
+            mask_feats = mask_feats[:, :self.num_outputs]
 
         losses = {}
         # auxiliary thing semantic loss
@@ -148,56 +135,4 @@ class MaskBranch(nn.Module):
             ) / num_pos
             losses['loss_sem'] = loss_sem
 
-        return {'mask_feats_body':mask_feats_body,'mask_feats_edge':mask_feats_edge}, losses
-        # return mask_feats, losses
-
-class SqueezeBodyEdge(nn.Module):
-    def __init__(self, inplane, norm_layer):
-        """
-        implementation of body generation part
-        :param inplane:
-        :param norm_layer:
-        :param num_outputs:
-        """
-        super(SqueezeBodyEdge, self).__init__()
-        self.down = nn.Sequential(
-            nn.Conv2d(inplane, inplane, kernel_size=3, groups=inplane, stride=2),
-            norm_layer(inplane),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(inplane, inplane, kernel_size=3, groups=inplane, stride=2),
-            norm_layer(inplane),
-            nn.ReLU(inplace=True)
-        )
-
-        self.flow_make = nn.Conv2d(inplane *2 , 2, kernel_size=3, padding=1, bias=False)
-
-    def forward(self, x):
-        size = x.size()[2:]
-        seg_down = self.down(x)
-        seg_down = F.upsample(seg_down, size=size, mode="bilinear", align_corners=True)
-        flow = self.flow_make(torch.cat([x, seg_down], dim=1))
-        seg_flow_warp = self.flow_warp(x, flow, size)
-        seg_edge = x - seg_flow_warp
-        return seg_flow_warp, seg_edge
-
-    def flow_warp(self, input, flow, size):
-        out_h, out_w = size
-        n, c, h, w = input.size()
-
-        norm = torch.tensor([[[[out_w, out_h]]]]).type_as(input).to(input.device)
-        w = torch.linspace(-1.0, 1.0, out_h).view(-1, 1).repeat(1, out_w)
-        h = torch.linspace(-1.0, 1.0, out_w).repeat(out_h, 1)
-        grid = torch.cat((h.unsqueeze(2), w.unsqueeze(2)), 2)
-        grid = grid.repeat(n, 1, 1, 1).type_as(input).to(input.device)
-        grid = grid + flow.permute(0, 2, 3, 1) / norm
-
-        output = F.grid_sample(input, grid)
-        return output
-
-def Norm2d(in_channels):
-    """
-    Custom Norm Function to allow flexible switching
-    """
-    # layer = getattr(cfg.MODEL, 'BNFUNC')
-    normalization_layer =  torch.nn.BatchNorm2d(in_channels)
-    return normalization_layer
+        return mask_feats, losses
