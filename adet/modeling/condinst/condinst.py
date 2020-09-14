@@ -209,5 +209,27 @@ class CondInst(nn.Module):
             )
             pred_global_masks = pred_global_masks[:, 0, :, :]
             results.pred_masks = (pred_global_masks > mask_threshold).float()
+        # edge and body
+        if results.has("pred_edge_masks"):
+            # edge
+            pred_edge_masks = aligned_bilinear(
+                results.pred_edge_masks, factor)
+            pred_edge_masks = pred_edge_masks[:, :, :resized_im_h, :resized_im_w]
+            pred_edge_masks = F.interpolate(
+                pred_edge_masks,
+                size=(output_height, output_width),
+                mode="bilinear", align_corners=False)
+            pred_edge_masks = pred_edge_masks[:, 0, :, :]
+            results.pred_edge = (pred_edge_masks > mask_threshold).float()
+            # body
+            pred_body_masks = aligned_bilinear(
+                results.pred_body_masks, factor)
+            pred_body_masks = pred_body_masks[:, :, :resized_im_h, :resized_im_w]
+            pred_body_masks = F.interpolate(
+                pred_body_masks,
+                size=(output_height, output_width),
+                mode="bilinear", align_corners=False)
+            pred_body_masks = pred_body_masks[:, 0, :, :]
+            results.pred_body = (pred_body_masks > mask_threshold).float()
 
         return results

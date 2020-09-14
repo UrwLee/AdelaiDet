@@ -283,10 +283,13 @@ class DynamicMaskHead(nn.Module):
             return loss_mask.float()
         else:
             if len(pred_instances) > 0:
+
                 mask_scores_body,mask_scores_edge,mask_scores_final = self.mask_heads_forward_with_coords(
                     mask_feats, mask_feat_stride, pred_instances
                 )
                 pred_instances.pred_global_masks = mask_scores_final.float()
+                pred_instances.pred_body_masks = mask_scores_body.float()
+                pred_instances.pred_edge_masks = mask_scores_edge.float()
 
             return pred_instances
 
