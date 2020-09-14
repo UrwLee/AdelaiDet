@@ -72,6 +72,12 @@ class VisualizationDemo(object):
             if "instances" in predictions:
                 instances = predictions["instances"].to(self.cpu_device)
                 vis_output = visualizer.draw_instance_predictions(predictions=instances)
+                if instances.has('pred_body') and instances.has('pred_edge'):
+                    visualizer_body = Visualizer(image, self.metadata, instance_mode=self.instance_mode)
+                    visualizer_edge = Visualizer(image, self.metadata, instance_mode=self.instance_mode)
+                    vis_output_body = visualizer_body.draw_instance_predictions(predictions=instances,vars ='pred_body')
+                    vis_output_edge = visualizer_edge.draw_instance_predictions(predictions=instances,vars ='pred_edge')
+                    return predictions,{'vis_output':vis_output,'vis_output_body':vis_output_body,'vis_output_edge':vis_output_edge}
 
         return predictions, vis_output
 
