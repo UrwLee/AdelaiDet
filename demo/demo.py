@@ -85,12 +85,12 @@ if __name__ == "__main__":
             img = read_image(path, format="BGR")
             start_time = time.time()
             predictions, visualized_output = demo.run_on_image(img)
+
             logger.info(
                 "{}: detected {} instances in {:.2f}s".format(
                     path, len(predictions["instances"]), time.time() - start_time
                 )
             )
-
             if args.output:
                 if not os.path.exists(args.output):
                     os.mkdir(args.output)
@@ -100,7 +100,16 @@ if __name__ == "__main__":
                 else:
                     assert len(args.input) == 1, "Please specify a directory with args.output"
                     out_filename = args.output
-                visualized_output.save(out_filename)
+                if isinstance(visualized_output,dict):
+                    for key in visualized_output.keys():
+                        visualized_output_ = visualized_output[key]
+                        dir_path = args.output + '_' + key
+                        if not os.path.exists(dir_path):
+                            os.mkdir(dir_path)
+                        out_filename_ = os.path.join(dir_path, os.path.basename(path))
+                        visualized_output_.save(out_filename_)
+                else:
+                    visualized_output.save(out_filename)
             else:
                 cv2.imshow(WINDOW_NAME, visualized_output.get_image()[:, :, ::-1])
                 if cv2.waitKey(0) == 27:
