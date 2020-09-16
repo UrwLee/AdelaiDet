@@ -68,8 +68,10 @@ class MaskBranch(nn.Module):
             bias_value = -math.log((1 - prior_prob) / prior_prob)
             torch.nn.init.constant_(self.logits.bias, bias_value)
 
-        self.refine_channel = nn.Conv2d(128,max(self.num_outputs,1),kernel_size=1,stride=1)
-        self.squeeze_body_edge = SqueezeBodyEdge(self.num_outputs,Norm2d)
+        self.refine_channel_edge = nn.Conv2d(128,max(self.num_outputs,1),kernel_size=1,stride=1)
+        self.refine_channel_body = nn.Conv2d(128,max(self.num_outputs,1),kernel_size=1,stride=1)
+        # self.squeeze_body_edge = SqueezeBodyEdge(self.num_outputs,Norm2d)
+        self.squeeze_body_edge = SqueezeBodyEdge(128,Norm2d)
 
     def forward(self, features, gt_instances=None):
         for i, f in enumerate(self.in_features):
@@ -93,8 +95,11 @@ class MaskBranch(nn.Module):
         # generate body and edge feturemap
         # body.shape:torch.Size([16, 8, 100, 168])
         # edge.shape:torch.Size([16, 8, 100, 168])
-        x = self.refine_channel(x)
+
+        # x = self.refine_channel(x)
         mask_feats_body,mask_feats_edge = self.squeeze_body_edge(x)
+        mask_feats_body = self.refine_channel_body(mask_feats_body)
+        mask_feats_edge = self.refine_channel_body(mask_feats_edge)
 
         if self.num_outputs == 0:
             # mask_feats = mask_feats[:, :self.num_outputs]

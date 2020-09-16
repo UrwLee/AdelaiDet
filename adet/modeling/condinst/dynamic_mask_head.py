@@ -176,15 +176,13 @@ class DynamicMaskHead(nn.Module):
         return mask_logits_body.sigmoid(),mask_logits_edge.sigmoid(),mask_logits_final.sigmoid()
 
     def generate_body_and_edge(self, mask):
-        # import time
-        # t1 = time.time()
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
         unknown = np.array(np.not_equal(mask, 0).astype(np.float32))
         dilation = cv2.dilate(unknown, kernel, iterations=2)
         corrosion = cv2.erode(unknown, kernel, iterations=1)
         edge = dilation - corrosion
+        # body = np.where(mask!=0,1,0)
         body = np.where(edge == 1, 0, mask/255)
-        # print(time.time()-t1)
         return edge.astype(np.uint8), body.astype(np.uint8)
 
     def onehot_to_binary_edges(self,mask, radius):
@@ -273,8 +271,7 @@ class DynamicMaskHead(nn.Module):
                 loss_mask = mask_feats['mask_feats_edge'].sum() * 0+mask_feats['mask_feats_body'].sum() * 0 + pred_instances.mask_head_params.sum() * 0
             else:
                 mask_scores_body,mask_scores_edge,mask_scores_final = self.mask_heads_forward_with_coords(
-                    mask_feats, mask_feat_stride, pred_instances
-                )
+                    mask_feats, mask_feat_stride, pred_instances)
                 mask_losses_body = dice_coefficient(mask_scores_body, gt_bitmasks_body)
                 mask_losses_edge = dice_coefficient(mask_scores_edge, gt_bitmasks_edge)
                 mask_losses_final = dice_coefficient(mask_scores_final, gt_bitmasks)
