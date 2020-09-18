@@ -67,11 +67,11 @@ class CondInst(nn.Module):
         else:
             gt_instances = None
 
-        mask_feats, sem_losses = self.mask_branch(features, gt_instances)
-
-        proposals, proposal_losses = self.proposal_generator(
+        proposals, proposal_losses,cls_fea_fusion = self.proposal_generator(
             images, features, gt_instances, self.controller
         )
+
+        mask_feats, sem_losses = self.mask_branch(features, gt_instances,cls_fea_fusion = cls_fea_fusion)
 
         if self.training:
             loss_mask = self._forward_mask_heads_train(proposals, mask_feats, gt_instances,images.tensor)

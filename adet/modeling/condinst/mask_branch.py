@@ -73,7 +73,7 @@ class MaskBranch(nn.Module):
         # self.squeeze_body_edge = SqueezeBodyEdge(self.num_outputs,Norm2d)
         self.squeeze_body_edge = SqueezeBodyEdge(128,Norm2d)
 
-    def forward(self, features, gt_instances=None):
+    def forward(self, features,gt_instances=None, cls_fea_fusion=None):
         for i, f in enumerate(self.in_features):
             if i == 0:
                 x = self.refine[i](features[f])
@@ -97,7 +97,8 @@ class MaskBranch(nn.Module):
         # edge.shape:torch.Size([16, 8, 100, 168])
 
         # x = self.refine_channel(x)
-        mask_feats_body,mask_feats_edge = self.squeeze_body_edge(x)
+
+        mask_feats_body,mask_feats_edge = self.squeeze_body_edge(x,cls_fea_fusion=cls_fea_fusion)
         mask_feats_body = self.refine_channel_body(mask_feats_body)
         mask_feats_edge = self.refine_channel_body(mask_feats_edge)
 
@@ -174,13 +175,14 @@ class SqueezeBodyEdge(nn.Module):
             nn.ReLU(inplace=True)
         )
 
-        self.flow_make = nn.Conv2d(inplane *2 , 2, kernel_size=3, padding=1, bias=False)
+        self.flow_make = nn.Conv2d(inplane *2+128 , 2, kernel_size=3, padding=1, bias=False)
 
-    def forward(self, x):
+    def forward(self, x,cls_fea_fusion = None):
         size = x.size()[2:]
         seg_down = self.down(x)
         seg_down = F.upsample(seg_down, size=size, mode="bilinear", align_corners=True)
-        flow = self.flow_make(torch.cat([x, seg_down], dim=1))
+        # flow = self.flow_make(torch.cat([x, seg_down], dim=1))
+        flow = self.flow_make(torch.cat([x, seg_down,cls_fea_fusion], dim=1))
         seg_flow_warp = self.flow_warp(x, flow, size)
         seg_edge = x - seg_flow_warp
         return seg_flow_warp, seg_edge
