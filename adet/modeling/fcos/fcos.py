@@ -106,7 +106,7 @@ class FCOS(nn.Module):
                 locations, images.image_sizes, top_feats
             )
 
-            return results, {},_
+            return results, {},cls_fea_fusion
 
     def compute_locations(self, features):
         locations = []
