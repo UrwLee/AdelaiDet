@@ -249,5 +249,6 @@ class FCOSHead(nn.Module):
             bbox_reg.append(F.relu(reg))
             if top_module is not None:
                 top_feats.append(top_module(bbox_tower))
-        cls_fea_fusion = self.cls_fusion_refine(cls_fea_fusion)
+        # cls_fea_fusion = self.cls_fusion_refine(cls_fea_fusion)
+        cls_fea_fusion = None
         return logits, bbox_reg, ctrness, top_feats, bbox_towers,cls_fea_fusion
