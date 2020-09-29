@@ -175,7 +175,8 @@ class SqueezeBodyEdge(nn.Module):
             nn.ReLU(inplace=True)
         )
 
-        self.flow_make = nn.Conv2d(inplane *2+128 , 2, kernel_size=3, padding=1, bias=False)
+        # self.flow_make = nn.Conv2d(inplane *2+128 , 2, kernel_size=3, padding=1, bias=False)
+        self.flow_make = nn.Conv2d(inplane *2 , 2, kernel_size=3, padding=1, bias=False)
 
     def forward(self, x,cls_fea_fusion = None):
         size = x.size()[2:]
