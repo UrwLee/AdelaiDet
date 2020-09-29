@@ -210,6 +210,7 @@ class CondInst(nn.Module):
             pred_global_masks = pred_global_masks[:, 0, :, :]
             results.pred_masks = (pred_global_masks > mask_threshold).float()
         # edge and body
+
         if results.has("pred_edge_masks"):
             # edge
             pred_edge_masks = aligned_bilinear(
