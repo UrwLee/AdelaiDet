@@ -181,8 +181,8 @@ class SqueezeBodyEdge(nn.Module):
         size = x.size()[2:]
         seg_down = self.down(x)
         seg_down = F.upsample(seg_down, size=size, mode="bilinear", align_corners=True)
-        # flow = self.flow_make(torch.cat([x, seg_down], dim=1))
-        flow = self.flow_make(torch.cat([x, seg_down,cls_fea_fusion], dim=1))
+        flow = self.flow_make(torch.cat([x, seg_down], dim=1))
+        # flow = self.flow_make(torch.cat([x, seg_down,cls_fea_fusion], dim=1))
         seg_flow_warp = self.flow_warp(x, flow, size)
         seg_edge = x - seg_flow_warp
         return seg_flow_warp, seg_edge
