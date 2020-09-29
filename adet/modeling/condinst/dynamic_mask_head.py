@@ -275,7 +275,7 @@ class DynamicMaskHead(nn.Module):
                 mask_losses_body = dice_coefficient(mask_scores_body, gt_bitmasks_body)
                 mask_losses_edge = dice_coefficient(mask_scores_edge, gt_bitmasks_edge)
                 mask_losses_final = dice_coefficient(mask_scores_final, gt_bitmasks)
-                loss_mask = mask_losses_body.mean()+mask_losses_edge.mean()+mask_losses_final.mean()
+                loss_mask =0.5* mask_losses_body.mean()+0.5*mask_losses_edge.mean()+mask_losses_final.mean()
                 
             return loss_mask.float()
         else:
