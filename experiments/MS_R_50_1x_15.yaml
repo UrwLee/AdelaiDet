@@ -1,0 +1,9 @@
+_BASE_: "Base-CondInst.yaml"
+MODEL:
+  WEIGHTS: "detectron2://ImageNetPretrained/MSRA/R-50.pkl"
+#  WEIGHTS: "/opt/tiger/toutiao/labcv/dmx_loop/checkpoints/condinst/MS_R_50_1x_5/model_final.pth"
+  RESNETS:
+    DEPTH: 50
+OUTPUT_DIR: "/opt/tiger/toutiao/labcv/dmx_loop/checkpoints/condinst/MS_R_50_1x_15"
+SOLVER:
+  BASE_LR: 0.01

@@ -166,21 +166,34 @@ class SqueezeBodyEdge(nn.Module):
         :param num_outputs:
         """
         super(SqueezeBodyEdge, self).__init__()
-        self.down = nn.Sequential(
+        # self.down = nn.Sequential(
+        #     nn.Conv2d(inplane, inplane, kernel_size=3, groups=inplane, stride=2),
+        #     norm_layer(inplane),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(inplane, inplane, kernel_size=3, groups=inplane, stride=2),
+        #     norm_layer(inplane),
+        #     nn.ReLU(inplace=True)
+        # )
+        self.down1 = nn.Sequential(
             nn.Conv2d(inplane, inplane, kernel_size=3, groups=inplane, stride=2),
             norm_layer(inplane),
             nn.ReLU(inplace=True),
+        )
+        self.down2 = nn.Sequential(
             nn.Conv2d(inplane, inplane, kernel_size=3, groups=inplane, stride=2),
             norm_layer(inplane),
             nn.ReLU(inplace=True)
         )
-
+        self.align_conv = nn.Conv2d(inplane,inplane,kernel_size=3,padding=1,stride=1)
         # self.flow_make = nn.Conv2d(inplane *2+128 , 2, kernel_size=3, padding=1, bias=False)
         self.flow_make = nn.Conv2d(inplane *2 , 2, kernel_size=3, padding=1, bias=False)
 
     def forward(self, x,cls_fea_fusion = None):
         size = x.size()[2:]
-        seg_down = self.down(x)
+        seg_down1 = self.down1(x)
+        seg_down2 = self.down1(seg_down1)
+        seg_down = seg_down2 + F.upsample(seg_down1,size=seg_down2.size()[2:],mode='bilinear',align_corners=True)
+        seg_down = self.align_conv(seg_down)
         seg_down = F.upsample(seg_down, size=size, mode="bilinear", align_corners=True)
         flow = self.flow_make(torch.cat([x, seg_down], dim=1))
         # flow = self.flow_make(torch.cat([x, seg_down,cls_fea_fusion], dim=1))
