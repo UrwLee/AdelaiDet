@@ -55,8 +55,12 @@ class CondInst(nn.Module):
             in_channels, 81,
             kernel_size=3, stride=1, padding=1
         )
-        torch.nn.init.normal_(self.controller.weight, std=0.01)
-        torch.nn.init.constant_(self.controller.bias, 0)
+        torch.nn.init.normal_(self.controller_body.weight, std=0.01)
+        torch.nn.init.constant_(self.controller_body.bias, 0)
+        torch.nn.init.normal_(self.controller_edge.weight, std=0.01)
+        torch.nn.init.constant_(self.controller_edge.bias, 0)
+        torch.nn.init.normal_(self.controller_final.weight, std=0.01)
+        torch.nn.init.constant_(self.controller_final.bias, 0)
 
         pixel_mean = torch.Tensor(cfg.MODEL.PIXEL_MEAN).to(self.device).view(3, 1, 1)
         pixel_std = torch.Tensor(cfg.MODEL.PIXEL_STD).to(self.device).view(3, 1, 1)
@@ -121,7 +125,9 @@ class CondInst(nn.Module):
             ))
             pred_instances = pred_instances[inds[:self.max_proposals]]
 
-        pred_instances.mask_head_params = pred_instances.top_feats
+        pred_instances.mask_head_params_body = pred_instances.top_feats_body
+        pred_instances.mask_head_params_edge = pred_instances.top_feats_edge
+        pred_instances.mask_head_params_final = pred_instances.top_feats_final
 
         loss_mask = self.mask_head(
             mask_feats, self.mask_branch.out_stride,

@@ -307,19 +307,18 @@ class FCOSOutputs(nn.Module):
             top_feats_body = top_feats['top_feats_body']
             top_feats_edge = top_feats['top_feats_edge']
             top_feats_final = top_feats['top_feats_final']
-            instances.top_feats = {}
             if len(top_feats_body) > 0:
-                instances.top_feats['body'] = cat([
+                instances.top_feats_body= cat([
                     # Reshape: (N, -1, Hi, Wi) -> (N*Hi*Wi, -1)
                     x.permute(0, 2, 3, 1).reshape(-1, x.size(1)) for x in top_feats_body
                 ], dim=0, )
             if len(top_feats_edge) > 0:
-                instances.top_feats['edge'] = cat([
+                instances.top_feats_edge = cat([
                     # Reshape: (N, -1, Hi, Wi) -> (N*Hi*Wi, -1)
                     x.permute(0, 2, 3, 1).reshape(-1, x.size(1)) for x in top_feats_edge
                 ], dim=0, )
             if len(top_feats_final) > 0:
-                instances.top_feats['final'] = cat([
+                instances.top_feats_final= cat([
                     # Reshape: (N, -1, Hi, Wi) -> (N*Hi*Wi, -1)
                     x.permute(0, 2, 3, 1).reshape(-1, x.size(1)) for x in top_feats_final
                 ], dim=0, )

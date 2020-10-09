@@ -119,7 +119,9 @@ class DynamicMaskHead(nn.Module):
         n_inst = len(instances)
 
         im_inds = instances.im_inds
-        mask_head_params = instances.mask_head_params
+        mask_head_params_body = instances.mask_head_params_body
+        mask_head_params_edge = instances.mask_head_params_edge
+        mask_head_params_final = instances.mask_head_params_final
 
         N, _, H, W = mask_feats['mask_feats_body'].size()
         # make sure self.in_channels == mask_feat.channel
@@ -146,15 +148,15 @@ class DynamicMaskHead(nn.Module):
         mask_head_inputs_edge = mask_head_inputs_edge.reshape(1, -1, H, W)
 
         weights_body, biases_body = parse_dynamic_params(
-            mask_head_params['body'], self.channels,
+            mask_head_params_body, self.channels,
             self.weight_nums, self.bias_nums
         )
         weights_edge, biases_edge = parse_dynamic_params(
-            mask_head_params['edge'], self.channels,
+            mask_head_params_edge, self.channels,
             self.weight_nums, self.bias_nums
         )
         weights_final, biases_final = parse_dynamic_params(
-            mask_head_params['final'], self.channels,
+            mask_head_params_final, self.channels,
             self.weight_nums[1:], self.bias_nums[1:]
         )
 
@@ -268,7 +270,7 @@ class DynamicMaskHead(nn.Module):
                         str(random.randint(0, 10000))), show)
             ################################################################################################################
             if len(pred_instances) == 0:
-                loss_mask = mask_feats['mask_feats_edge'].sum() * 0+mask_feats['mask_feats_body'].sum() * 0 + pred_instances.mask_head_params.sum() * 0
+                loss_mask = mask_feats['mask_feats_edge'].sum() * 0+mask_feats['mask_feats_body'].sum() * 0 + pred_instances.mask_head_params_edge.sum() * 0
             else:
                 mask_scores_body,mask_scores_edge,mask_scores_final = self.mask_heads_forward_with_coords(
                     mask_feats, mask_feat_stride, pred_instances)
