@@ -43,8 +43,16 @@ class CondInst(nn.Module):
         # build top module
         in_channels = self.proposal_generator.in_channels_to_top_module
 
-        self.controller = nn.Conv2d(
-            in_channels, self.mask_head.num_gen_params*2+81,
+        self.controller_body = nn.Conv2d(
+            in_channels, self.mask_head.num_gen_params,
+            kernel_size=3, stride=1, padding=1
+        )
+        self.controller_edge = nn.Conv2d(
+            in_channels, self.mask_head.num_gen_params,
+            kernel_size=3, stride=1, padding=1
+        )
+        self.controller_final = nn.Conv2d(
+            in_channels, 81,
             kernel_size=3, stride=1, padding=1
         )
         torch.nn.init.normal_(self.controller.weight, std=0.01)
@@ -68,7 +76,7 @@ class CondInst(nn.Module):
             gt_instances = None
 
         proposals, proposal_losses,cls_fea_fusion = self.proposal_generator(
-            images, features, gt_instances, self.controller
+            images, features, gt_instances, self.controller_body,self.controller_edge,self.controller_final
         )
 
         mask_feats, sem_losses = self.mask_branch(features, gt_instances,cls_fea_fusion = cls_fea_fusion)

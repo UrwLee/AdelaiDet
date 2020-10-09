@@ -146,15 +146,15 @@ class DynamicMaskHead(nn.Module):
         mask_head_inputs_edge = mask_head_inputs_edge.reshape(1, -1, H, W)
 
         weights_body, biases_body = parse_dynamic_params(
-            mask_head_params[:,:self.num_gen_params], self.channels,
+            mask_head_params['body'], self.channels,
             self.weight_nums, self.bias_nums
         )
         weights_edge, biases_edge = parse_dynamic_params(
-            mask_head_params[:,self.num_gen_params:-81], self.channels,
+            mask_head_params['edge'], self.channels,
             self.weight_nums, self.bias_nums
         )
         weights_final, biases_final = parse_dynamic_params(
-            mask_head_params[:, -81:], self.channels,
+            mask_head_params['final'], self.channels,
             self.weight_nums[1:], self.bias_nums[1:]
         )
 

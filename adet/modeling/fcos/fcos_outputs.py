@@ -303,13 +303,32 @@ class FCOSOutputs(nn.Module):
             # Reshape: (N, 1, Hi, Wi) -> (N*Hi*Wi,)
             x.permute(0, 2, 3, 1).reshape(-1) for x in ctrness_pred
         ], dim=0,)
-
-        if len(top_feats) > 0:
-            instances.top_feats = cat([
-                # Reshape: (N, -1, Hi, Wi) -> (N*Hi*Wi, -1)
-                x.permute(0, 2, 3, 1).reshape(-1, x.size(1)) for x in top_feats
-            ], dim=0,)
-
+        if isinstance(top_feats,dict):
+            top_feats_body = top_feats['top_feats_body']
+            top_feats_edge = top_feats['top_feats_edge']
+            top_feats_final = top_feats['top_feats_final']
+            instances.top_feats = {}
+            if len(top_feats_body) > 0:
+                instances.top_feats['body'] = cat([
+                    # Reshape: (N, -1, Hi, Wi) -> (N*Hi*Wi, -1)
+                    x.permute(0, 2, 3, 1).reshape(-1, x.size(1)) for x in top_feats_body
+                ], dim=0, )
+            if len(top_feats_edge) > 0:
+                instances.top_feats['edge'] = cat([
+                    # Reshape: (N, -1, Hi, Wi) -> (N*Hi*Wi, -1)
+                    x.permute(0, 2, 3, 1).reshape(-1, x.size(1)) for x in top_feats_edge
+                ], dim=0, )
+            if len(top_feats_final) > 0:
+                instances.top_feats['final'] = cat([
+                    # Reshape: (N, -1, Hi, Wi) -> (N*Hi*Wi, -1)
+                    x.permute(0, 2, 3, 1).reshape(-1, x.size(1)) for x in top_feats_final
+                ], dim=0, )
+        else:
+            if len(top_feats) > 0:
+                instances.top_feats = cat([
+                    # Reshape: (N, -1, Hi, Wi) -> (N*Hi*Wi, -1)
+                    x.permute(0, 2, 3, 1).reshape(-1, x.size(1)) for x in top_feats
+                ], dim=0,)
         return self.fcos_losses(instances)
 
     def fcos_losses(self, instances):
