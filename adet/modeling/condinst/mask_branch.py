@@ -100,7 +100,7 @@ class MaskBranch(nn.Module):
 
         mask_feats_body,mask_feats_edge = self.squeeze_body_edge(x,cls_fea_fusion=cls_fea_fusion)
         mask_feats_body = self.refine_channel_body(mask_feats_body)
-        mask_feats_edge = self.refine_channel_body(mask_feats_edge)
+        mask_feats_edge = self.refine_channel_edge(mask_feats_edge)
 
         if self.num_outputs == 0:
             # mask_feats = mask_feats[:, :self.num_outputs]
