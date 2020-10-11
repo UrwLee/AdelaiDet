@@ -141,7 +141,9 @@ class CondInst(nn.Module):
         for im_id, per_im in enumerate(proposals):
             per_im.im_inds = per_im.locations.new_ones(len(per_im), dtype=torch.long) * im_id
         pred_instances = Instances.cat(proposals)
-        pred_instances.mask_head_params = pred_instances.top_feat
+        pred_instances.mask_head_params_body = pred_instances.top_feats_body
+        pred_instances.mask_head_params_edge = pred_instances.top_feats_edge
+        pred_instances.mask_head_params_final = pred_instances.top_feats_final
 
         pred_instances_w_masks = self.mask_head(
             mask_feats, self.mask_branch.out_stride, pred_instances

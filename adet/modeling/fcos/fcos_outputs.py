@@ -409,9 +409,10 @@ class FCOSOutputs(nn.Module):
             "r": reg_pred, "c": ctrness_pred,
             "s": self.strides,
         }
-
         if len(top_feats) > 0:
-            bundle["t"] = top_feats
+            bundle["t_body"] = top_feats['top_feats_body']
+            bundle["t_edge"] = top_feats['top_feats_edge']
+            bundle["t_fianl"] = top_feats['top_feats_final']
 
         for i, per_bundle in enumerate(zip(*bundle.values())):
             # get per-level bundle
@@ -422,11 +423,13 @@ class FCOSOutputs(nn.Module):
             o = per_bundle["o"]
             r = per_bundle["r"] * per_bundle["s"]
             c = per_bundle["c"]
-            t = per_bundle["t"] if "t" in bundle else None
+            t_body = per_bundle["t_body"] if "t_body" in bundle else None
+            t_edge = per_bundle["t_edge"] if "t_edge" in bundle else None
+            t_final= per_bundle["t_fianl"] if "t_fianl" in bundle else None
 
             sampled_boxes.append(
                 self.forward_for_single_feature_map(
-                    l, o, r, c, image_sizes, t
+                    l, o, r, c, image_sizes, t_body,t_edge,t_final
                 )
             )
 
@@ -443,7 +446,7 @@ class FCOSOutputs(nn.Module):
 
     def forward_for_single_feature_map(
             self, locations, logits_pred, reg_pred,
-            ctrness_pred, image_sizes, top_feat=None
+            ctrness_pred, image_sizes, top_feat_body=None, top_feat_edge=None, top_feat_final=None,
     ):
         N, C, H, W = logits_pred.shape
 
@@ -454,9 +457,13 @@ class FCOSOutputs(nn.Module):
         box_regression = box_regression.reshape(N, -1, 4)
         ctrness_pred = ctrness_pred.view(N, 1, H, W).permute(0, 2, 3, 1)
         ctrness_pred = ctrness_pred.reshape(N, -1).sigmoid()
-        if top_feat is not None:
-            top_feat = top_feat.view(N, -1, H, W).permute(0, 2, 3, 1)
-            top_feat = top_feat.reshape(N, H * W, -1)
+        if top_feat_body is not None:
+            top_feat_body = top_feat_body.view(N, -1, H, W).permute(0, 2, 3, 1)
+            top_feat_body= top_feat_body.reshape(N, H * W, -1)
+            top_feat_edge = top_feat_edge.view(N, -1, H, W).permute(0, 2, 3, 1)
+            top_feat_edge = top_feat_edge.reshape(N, H * W, -1)
+            top_feat_final = top_feat_final.view(N, -1, H, W).permute(0, 2, 3, 1)
+            top_feat_final = top_feat_final.reshape(N, H * W, -1)
 
         # if self.thresh_with_ctr is True, we multiply the classification
         # scores with centerness scores before applying the threshold.
@@ -482,9 +489,13 @@ class FCOSOutputs(nn.Module):
             per_box_regression = box_regression[i]
             per_box_regression = per_box_regression[per_box_loc]
             per_locations = locations[per_box_loc]
-            if top_feat is not None:
-                per_top_feat = top_feat[i]
-                per_top_feat = per_top_feat[per_box_loc]
+            if top_feat_body is not None:
+                per_top_feat_body = top_feat_body[i]
+                per_top_feat_body = per_top_feat_body[per_box_loc]
+                per_top_feat_edge = top_feat_edge[i]
+                per_top_feat_edge = per_top_feat_edge[per_box_loc]
+                per_top_feat_final = top_feat_final[i]
+                per_top_feat_final = per_top_feat_final[per_box_loc]
 
             per_pre_nms_top_n = pre_nms_top_n[i]
 
@@ -494,8 +505,10 @@ class FCOSOutputs(nn.Module):
                 per_class = per_class[top_k_indices]
                 per_box_regression = per_box_regression[top_k_indices]
                 per_locations = per_locations[top_k_indices]
-                if top_feat is not None:
-                    per_top_feat = per_top_feat[top_k_indices]
+                if top_feat_body is not None:
+                    per_top_feat_body = per_top_feat_body[top_k_indices]
+                    per_top_feat_edge = per_top_feat_edge[top_k_indices]
+                    per_top_feat_final = per_top_feat_final[top_k_indices]
 
             detections = torch.stack([
                 per_locations[:, 0] - per_box_regression[:, 0],
@@ -509,8 +522,10 @@ class FCOSOutputs(nn.Module):
             boxlist.scores = torch.sqrt(per_box_cls)
             boxlist.pred_classes = per_class
             boxlist.locations = per_locations
-            if top_feat is not None:
-                boxlist.top_feat = per_top_feat
+            if top_feat_body is not None:
+                boxlist.top_feats_body = per_top_feat_body
+                boxlist.top_feats_edge = per_top_feat_edge
+                boxlist.top_feats_final = per_top_feat_final
             results.append(boxlist)
 
         return results
