@@ -54,5 +54,6 @@ demo/performance.py
 demo/demo2.py
 benchmark.sh
 
-xperiments/*
-*.sh
+experiments/*
+*sh
+train.sh
