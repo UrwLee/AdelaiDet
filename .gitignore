@@ -55,9 +55,4 @@ demo/demo2.py
 benchmark.sh
 
 experiments/*
-<<<<<<< HEAD
-*.sh
-=======
 *sh
-train.sh
->>>>>>> 9833e0f0e6081a5f610dbfc8a83ae1fb40f259a4
