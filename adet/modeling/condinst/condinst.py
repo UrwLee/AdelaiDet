@@ -69,7 +69,7 @@ class CondInst(nn.Module):
         self.aspp = _AtrousSpatialPyramidPoolingModule(256, 256,output_stride=8)
         self.bot_aspp = nn.Conv2d(1280, 256, kernel_size=1, bias=False)
 
-    def forward(self, batched_inputs,use_aspp=False):
+    def forward(self, batched_inputs,use_aspp=True):
         images = [x["image"].to(self.device) for x in batched_inputs]
         images = [self.normalizer(x) for x in images]
         images = ImageList.from_tensors(images, self.backbone.size_divisibility)
