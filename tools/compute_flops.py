@@ -27,7 +27,7 @@ def main(args):
     input_size = (3, 512, 512)
     image = torch.zeros(*input_size)
     batched_input = {"image": image}
-    ops, params = measure_model(model, [batched_input])
+    _,ops, params = measure_model(model, [batched_input])
     print('ops: {:.2f}G\tparams: {:.2f}M'.format(ops / 2**30, params / 2**20))
 
 
