@@ -54,12 +54,18 @@ class CondInst(nn.Module):
         pixel_std = torch.Tensor(cfg.MODEL.PIXEL_STD).to(self.device).view(3, 1, 1)
         self.normalizer = lambda x: (x - pixel_mean) / pixel_std
         self.to(self.device)
+        self.aspp = _AtrousSpatialPyramidPoolingModule(256, 256, output_stride=8)
+        self.bot_aspp = nn.Conv2d(1280, 256, kernel_size=1, bias=False)
 
-    def forward(self, batched_inputs):
+    def forward(self, batched_inputs,use_aspp=True):
         images = [x["image"].to(self.device) for x in batched_inputs]
         images = [self.normalizer(x) for x in images]
         images = ImageList.from_tensors(images, self.backbone.size_divisibility)
         features = self.backbone(images.tensor)
+        # ASPP
+        if use_aspp:
+            x = self.aspp(features['p3'])
+            features['p3'] = self.bot_aspp(x)
 
         if "instances" in batched_inputs[0]:
             gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
@@ -207,3 +213,66 @@ class CondInst(nn.Module):
             results.pred_masks = (pred_global_masks > mask_threshold).float()
 
         return results
+
+class _AtrousSpatialPyramidPoolingModule(nn.Module):
+    """
+    operations performed:
+      1x1 x depth
+      3x3 x depth dilation 6
+      3x3 x depth dilation 12
+      3x3 x depth dilation 18
+      image pooling
+      concatenate all together
+      Final 1x1 conv
+    """
+
+    def __init__(self, in_dim, reduction_dim=256, output_stride=16, rates=(6, 12, 18)):
+        super(_AtrousSpatialPyramidPoolingModule, self).__init__()
+
+        if output_stride == 8:
+            rates = [2 * r for r in rates]
+        elif output_stride == 16:
+            pass
+        else:
+            raise 'output stride of {} not supported'.format(output_stride)
+
+        self.features = []
+        # 1x1
+        self.features.append(
+            nn.Sequential(nn.Conv2d(in_dim, reduction_dim, kernel_size=1, bias=False),
+                          nn.BatchNorm2d(reduction_dim), nn.ReLU(inplace=True)))
+        # other rates
+        for r in rates:
+            self.features.append(nn.Sequential(
+                nn.Conv2d(in_dim, reduction_dim, kernel_size=3,
+                          dilation=r, padding=r, bias=False),
+                nn.BatchNorm2d(reduction_dim),
+                nn.ReLU(inplace=True)
+            ))
+        self.features = torch.nn.ModuleList(self.features)
+
+        # img level features
+        self.img_pooling = nn.AdaptiveAvgPool2d(1)
+        self.img_conv = nn.Sequential(
+            nn.Conv2d(in_dim, reduction_dim, kernel_size=1, bias=False),
+            nn.BatchNorm2d(reduction_dim), nn.ReLU(inplace=True))
+
+    def forward(self, x):
+        x_size = x.size()
+
+        img_features = self.img_pooling(x)
+        img_features = self.img_conv(img_features)
+        img_features = Upsample(img_features, x_size[2:])
+        out = img_features
+
+        for f in self.features:
+            y = f(x)
+            out = torch.cat((out, y), 1)
+        return out
+
+def Upsample(x, size):
+    """
+    Wrapper Around the Upsample Call
+    """
+    return nn.functional.interpolate(x, size=size, mode='bilinear',
+                                     align_corners=True)
