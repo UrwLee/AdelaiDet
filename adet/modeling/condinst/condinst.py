@@ -51,8 +51,12 @@ class CondInst(nn.Module):
             in_channels, self.mask_head.num_gen_params,
             kernel_size=3, stride=1, padding=1
         )
+        # self.controller_final = nn.Conv2d(
+        #     in_channels, 81,
+        #     kernel_size=3, stride=1, padding=1
+        # )
         self.controller_final = nn.Conv2d(
-            in_channels, 81,
+            in_channels, 153,
             kernel_size=3, stride=1, padding=1
         )
         torch.nn.init.normal_(self.controller_body.weight, std=0.01)

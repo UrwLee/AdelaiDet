@@ -155,9 +155,13 @@ class DynamicMaskHead(nn.Module):
             mask_head_params_edge, self.channels,
             self.weight_nums, self.bias_nums
         )
+        # weights_final, biases_final = parse_dynamic_params(
+        #     mask_head_params_final, self.channels,
+        #     self.weight_nums[1:], self.bias_nums[1:]
+        # )
         weights_final, biases_final = parse_dynamic_params(
             mask_head_params_final, self.channels,
-            self.weight_nums[1:], self.bias_nums[1:]
+            [64,64,8], [8,8,1]
         )
 
         mask_logits_body,mask_logits_body_concat = self.mask_heads_forward(mask_head_inputs_body, weights_body, biases_body, n_inst)
