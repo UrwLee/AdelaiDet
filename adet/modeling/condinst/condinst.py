@@ -51,14 +51,14 @@ class CondInst(nn.Module):
             in_channels, self.mask_head.num_gen_params,
             kernel_size=3, stride=1, padding=1
         )
-        # self.controller_final = nn.Conv2d(
-        #     in_channels, 81,
-        #     kernel_size=3, stride=1, padding=1
-        # )
         self.controller_final = nn.Conv2d(
-            in_channels, 153,
+            in_channels, 81,
             kernel_size=3, stride=1, padding=1
         )
+        # self.controller_final = nn.Conv2d(
+        #     in_channels, 153,
+        #     kernel_size=3, stride=1, padding=1
+        # )
         torch.nn.init.normal_(self.controller_body.weight, std=0.01)
         torch.nn.init.constant_(self.controller_body.bias, 0)
         torch.nn.init.normal_(self.controller_edge.weight, std=0.01)
@@ -73,7 +73,7 @@ class CondInst(nn.Module):
         self.aspp = _AtrousSpatialPyramidPoolingModule(256, 256,output_stride=8)
         self.bot_aspp = nn.Conv2d(1280, 256, kernel_size=1, bias=False)
 
-    def forward(self, batched_inputs,use_aspp=True):
+    def forward(self, batched_inputs,use_aspp=False):
         images = [x["image"].to(self.device) for x in batched_inputs]
         images = [self.normalizer(x) for x in images]
         images = ImageList.from_tensors(images, self.backbone.size_divisibility)

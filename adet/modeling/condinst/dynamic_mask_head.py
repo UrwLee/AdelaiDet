@@ -155,14 +155,14 @@ class DynamicMaskHead(nn.Module):
             mask_head_params_edge, self.channels,
             self.weight_nums, self.bias_nums
         )
-        # weights_final, biases_final = parse_dynamic_params(
-        #     mask_head_params_final, self.channels,
-        #     self.weight_nums[1:], self.bias_nums[1:]
-        # )
         weights_final, biases_final = parse_dynamic_params(
             mask_head_params_final, self.channels,
-            [64,64,8], [8,8,1]
+            self.weight_nums[1:], self.bias_nums[1:]
         )
+        # weights_final, biases_final = parse_dynamic_params(
+        #     mask_head_params_final, self.channels,
+        #     [64,64,8], [8,8,1]
+        # )
 
         mask_logits_body,mask_logits_body_concat = self.mask_heads_forward(mask_head_inputs_body, weights_body, biases_body, n_inst)
         mask_logits_edge,mask_logits_edge_concat = self.mask_heads_forward(mask_head_inputs_edge, weights_edge, biases_edge, n_inst)
@@ -270,7 +270,7 @@ class DynamicMaskHead(nn.Module):
                     image_edge = cv2.addWeighted(image, 0.5, np.repeat(edge[:, :, np.newaxis], 3, 2), 0.5, 0.0)
                     image_body = cv2.addWeighted(image, 0.5, np.repeat(body[:, :, np.newaxis], 3, 2), 0.5, 0.0)
                     show = np.concatenate([image_mask, image_edge, image_body, np.repeat(diff[:, :, np.newaxis], 3, 2)], 1)
-                    cv2.imwrite('/opt/tiger/toutiao/labcv/dmx_loop/data/visiual/condinst/train_test_mask/{}.jpg'.format(
+                    cv2.imwrite('/opt/tiger/toutiao/labcv/dmx_loop/data/visiual/condinst/debug/{}.jpg'.format(
                         str(random.randint(0, 10000))), show)
             ################################################################################################################
             if len(pred_instances) == 0:
@@ -281,7 +281,7 @@ class DynamicMaskHead(nn.Module):
                 mask_losses_body = dice_coefficient(mask_scores_body, gt_bitmasks_body)
                 mask_losses_edge = dice_coefficient(mask_scores_edge, gt_bitmasks_edge)
                 mask_losses_final = dice_coefficient(mask_scores_final, gt_bitmasks)
-                loss_mask =mask_losses_body.mean()+mask_losses_edge.mean()+mask_losses_final.mean()
+                loss_mask =mask_losses_body.mean()+20*mask_losses_edge.mean()+mask_losses_final.mean()
                 
             return loss_mask.float()
         else:
